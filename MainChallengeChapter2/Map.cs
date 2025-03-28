@@ -1,4 +1,4 @@
-﻿public class Map 
+﻿public class Map
 {
     public RoomType[,] Rooms { get; private set; }
     public int Size { get; init; } = 4;
@@ -6,33 +6,35 @@
 
     public Map() 
     {
-        InitializeMap();
+        GetMapGeneration(MapSize.Small);
     }
-    public Map(string mapSizeUser) 
+    public Map(MapSize mapSizeUser) 
     {
-        MapSize mapInt = mapSizeUser.ToLower() switch 
-        {
-            "small" => MapSize.Small,
-            "medium" => MapSize.Medium,
-            "large" => MapSize.Large,
-            _=> MapSize.Small,
+        IMapGeneration command = GetMapGeneration(mapSizeUser);
+        Rooms = command.GenerateMap();
+        Size = Rooms.Length;
+    }
+
+    public IMapGeneration GetMapGeneration(MapSize mapSize) {
+        return mapSize switch {
+            MapSize.Small => new SmallMap(),
+            MapSize.Medium => new MediumMap(),
+            MapSize.Large => new LargeMap(),
+            _ => new SmallMap(),
         };
-
-        Size = (int) mapInt;
-        
-        InitializeMap();
     }
+    public RoomType? LocateAdjacentDangerRoom(Coordinate coordinates) {
+        for(int row =coordinates.X - 1; row <= coordinates.X + 1;row++) {
+            for(int column = coordinates.Y - 1; column <= coordinates.Y + 1;column++) {
+                if (row < 0 || row > Size - 1 || column < 0 || column > Size - 1) {
+                    continue;
+                }
 
-    private void InitializeMap() 
-    {
-        Rooms = new RoomType[Size,Size];
-        GenerateSpecialRooms();
-    }
-    private void GenerateSpecialRooms()
-    {
-        Rooms[0,0] = RoomType.Entrance;
-        Rooms[0,2] = RoomType.FountainOfObjects;
-        Rooms[1,0] = RoomType.Pit;
+                if (Rooms[row,column].Equals(RoomType.Pit)) return RoomType.Pit;
+            }
+        }
+
+        return null;
     }
 }
 
