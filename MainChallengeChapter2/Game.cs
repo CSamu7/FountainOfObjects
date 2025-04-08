@@ -1,85 +1,86 @@
-﻿public class Game {
+﻿public class Game
+{
     public Map map;
     Player player = new Player();
-  
-    public void StartGame() {
-        string mapSizeUser = GetUserInput("Choose the size of the map (small, medium, large): ");
-        MapSize mapSize = mapSizeUser switch {
+    public void StartGame()
+    {
+        string mapSizeUser = ConsoleHelper.GetInputUser("Choose the size of the map (small, medium, large): ");
+        MapSize mapSize = mapSizeUser switch
+        {
             "small" => MapSize.Small,
             "medium" => MapSize.Medium,
             "large" => MapSize.Large,
             _ => MapSize.Small,
         };
 
+        DisplayIntroduction();
         map = new Map(mapSize);
 
-        while (true) {
+        while (true)
+        {
             DisplayInformation();
-            string userCommand = GetUserInput("What do you want to do? ", ConsoleColor.Cyan);
-   
+            DisplayMessageRoom();
+
+            if (HasPlayerLost()) break;
+
+            if (HasPlayerWon())
+            {
+                ConsoleHelper.DisplayMessage("The fountain of Objects has been reactivated, and you have escaped with your life!", ConsoleColor.Magenta);
+                break;
+            }
+
+            map.SendAdjacentMessages(player.Position);
+
+            string userCommand = ConsoleHelper.GetInputUser("What do you want to do? ", ConsoleColor.Cyan);
             IPlayerAction command = player.GetCommand(userCommand);
-            command.ExecuteAction(player.position,map);
-
-            if (HasPlayerLost()) {
-                DisplayMessage("You have lost!",ConsoleColor.Red);
-                break;
-            }
-
-            if (HasPlayerWon()) {
-                DisplayMessage("The fountain of Objects has been reactivated, and you have escaped with your life!", ConsoleColor.Magenta);
-                break;
-            }
+            command.ExecuteAction(player, map);
         }
     }
-    public void DisplayInformation() {
-        Console.WriteLine("---------------------------------------");
-        Console.WriteLine($"You are in the room at (Row={player.position.X}, Column={player.position.Y})");
-        GetRoomMessage();
+    public void DisplayInformation()
+    {
+        Console.WriteLine("-----------------------------------------");
+        Console.Write($"You are in the room at (Row={player.Position.Y}, Column={player.Position.X}).  ");
+        ConsoleHelper.DisplayMessage($"Total arrows: {player.Arrows}", ConsoleColor.DarkYellow);
+        map.UpdateMonsters(player);
     }
-    private string GetUserInput(string message, ConsoleColor color = ConsoleColor.White) {
-        Console.Write(message);
-        Console.ForegroundColor = color;
-        string userCommand = Console.ReadLine();
-        Console.ForegroundColor = ConsoleColor.White;
 
-        return userCommand;
-    }
-    public void DisplayMessage(string message,ConsoleColor color) {
-        if (message == null) return;
+    public void DisplayMessageRoom()
+    {
+        Room room = map.Rooms[player.Position.Y, player.Position.X];
 
-        Console.ForegroundColor = color;
-        Console.WriteLine(message);
-        Console.ForegroundColor = ConsoleColor.White;
-    }
-    public string? GetRoomMessage() {
-        RoomType room = map.Rooms[player.position.X,player.position.Y];
-        RoomType? nearestDanger = map.LocateAdjacentDangerRoom(player.position);
-
-        if (room.Equals(RoomType.FountainOfObjects) && !map.IsFountainActivated) {
-            DisplayMessage("You hear water dripping in this room. The fountain of Objects is here!", ConsoleColor.Blue);
-        } else if (room.Equals(RoomType.FountainOfObjects) && map.IsFountainActivated) {
-            DisplayMessage("You hear the rushing waters from the Fountain of Objects. It has been reactivated", ConsoleColor.Blue);
-        } else if (room.Equals(RoomType.Entrance)) {
-            DisplayMessage("You see light in this room coming from outside the cavern. This is the entrance", ConsoleColor.Yellow);
-        } 
-
-        //Nearest dangers
-        
-        if (nearestDanger.Equals(RoomType.Pit)) {
-           DisplayMessage("You feel a draft. There is a pit in a nearby room", ConsoleColor.Red);
+        if (room is InteractiveRoom fountain)
+        {
+            Console.Write("[FOUNTAIN]: ");
+            fountain.DisplayMessage(map.IsFountainActivated);
+        } else if(room.AdjacentMessage != null)
+        {
+            Console.Write("[ACTUAL ROOM]: ");
+            ConsoleHelper.DisplayMessage(room.Message, room.Color);
         }
-
-        return null;
     }
-    public bool HasPlayerLost() {
-        RoomType room = map.Rooms[player.position.X,player.position.Y];
-
-        return room.Equals(RoomType.Pit);
+    public void DisplayIntroduction()
+    {
+        Console.WriteLine("[INTRODUCTION]");
+        Console.WriteLine("You enter the Cavern of Objects, a maze of rooms filled with dangerous pits in search of the Fountain of Objects");
+        Console.WriteLine("Light is visible only in the entrance, and no other light is seen anywhere in the caverns.");
+        Console.WriteLine("You must navigate the Caverns with you other senses");
+        Console.WriteLine("* Look out for pits. You ill feel a breeze if a pit is in an adjacent room. If you enter a room with a pit, you will die.");
+        Console.WriteLine("* Maelstroms are violent forces of sentient wind. Entering a room with one could transport you to any other location in the caverns. You will" +
+            " able to hear their growling and groaning in nearby rooms");
+        Console.WriteLine("* Amaroks roam the caverns. Encountering one is certain death, but you can smell their rotten sench in nearby rooms");
+        Console.WriteLine("* You carry with you a bow and a quiver of arrows. You can use to shoot monsters in the caverns but be warned: You have limited supply");
+        Console.WriteLine("Find the Fountain of Objects, activate it, and return to the entrance");
     }
-    public bool HasPlayerWon() 
+    public bool HasPlayerLost()
+    {
+        Room room = map.Rooms[player.Position.Y, player.Position.X];
+
+        return room is DangerRoom || !player.IsAlive;
+    }
+    public bool HasPlayerWon()
     {
         return map.IsFountainActivated &&
-               player.position.X == 0 &&
-               player.position.Y == 0;
+               player.Position.Y == 0 &&
+               player.Position.X == 0;
     }
 }

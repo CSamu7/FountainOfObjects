@@ -1,44 +1,73 @@
-﻿public interface IMapGeneration {
-    RoomType[,] GenerateMap();
+﻿public abstract class MapGeneration
+{
+    public Room Entrance { get; } = new Room(RoomType.Entrance, "You see light coming from the cavern entrance", ConsoleColor.Yellow);
+    public InteractiveRoom Fountain { get; } = new InteractiveRoom(RoomType.FountainOfObjects, "You hear the rushing waters from the Fountain of Objects. It has been reactivated. ",
+    "You hear water dripping in this room. The Fountain of Objects is here!", ConsoleColor.Blue);
+    public DangerRoom Pit { get; } = new DangerRoom(RoomType.Pit, "You have fall in the pit!", "You feel a draft. There is a pit in a nearby room", ConsoleColor.Red);
+    public abstract Room[,] GenerateMap();
+    public abstract Monster[] GenerateMonsters();
 }
-public class SmallMap: IMapGeneration {
-    public RoomType[,] GenerateMap() {
-        RoomType[,] Rooms = new RoomType[4,4];
+public class SmallMap : MapGeneration
+{
+    public override Room[,] GenerateMap()
+    {
+        Room[,] rooms = new Room[4, 4];
 
-        Rooms[0,0] = RoomType.Entrance;
-        Rooms[0,2] = RoomType.FountainOfObjects;
-        Rooms[1,0] = RoomType.Pit;
+        rooms[0, 0] = Entrance;
+        rooms[1, 0] = Pit;
+        rooms[0, 1] = Fountain;
 
-        return Rooms;
+        return rooms;
+    }
+    public override Monster[] GenerateMonsters()
+    {
+        return [new Maelstrom(new Coordinate(3, 2), 4)];
     }
 }
+public class MediumMap : MapGeneration
+{
+    public override Room[,] GenerateMap()
+    {
+        Room[,] rooms = new Room[6, 6];
+        rooms[0, 0] = Entrance;
+        rooms[3, 3] = Fountain;
 
-public class MediumMap: IMapGeneration {
-    public RoomType[,] GenerateMap() {
-        RoomType[,] Rooms = new RoomType[6,6];
+        rooms[1, 0] = Pit;
+        rooms[2, 3] = Pit;
 
-        Rooms[0,0] = RoomType.Entrance;
-        Rooms[3,3] = RoomType.FountainOfObjects;
-
-        Rooms[1,0] = RoomType.Pit;
-        Rooms[1,3] = RoomType.Pit;
-
-        return Rooms;
+        return rooms;
+    }
+    public override Monster[] GenerateMonsters()
+    {
+        return [new Maelstrom(new Coordinate(1,1), 6),
+                new Maelstrom(new Coordinate(5,5), 6),
+                new Amarok(new Coordinate(2,5))];
     }
 }
+public class LargeMap : MapGeneration
+{
+    public override Room[,] GenerateMap()
+    {
+        Room[,] rooms = new Room[8, 8];
 
-public class LargeMap: IMapGeneration {
-    public RoomType[,] GenerateMap() {
-        RoomType[,] Rooms = new RoomType[8,8];
+        rooms[0, 0] = Entrance;
+        rooms[3, 3] = Fountain;
 
-        Rooms[0,0] = RoomType.Entrance;
-        Rooms[3,3] = RoomType.FountainOfObjects;
+        rooms[1, 0] = Pit;
+        rooms[1, 2] = Pit;
+        rooms[5, 4] = Pit;
+        rooms[3, 0] = Pit;
 
-        Rooms[1,0] = RoomType.Pit;
-        Rooms[1,2] = RoomType.Pit;
-        Rooms[5,4] = RoomType.Pit;
-        Rooms[3,0] = RoomType.Pit;
+        return rooms;
+    }
 
-        return Rooms;
+    public override Monster[] GenerateMonsters()
+    {
+        return [new Maelstrom(new Coordinate(1,1), 6),
+                new Maelstrom(new Coordinate(5,5), 6),
+                new Amarok(new Coordinate(2,5)),
+                new Amarok(new Coordinate(6,2)),
+                new Amarok(new Coordinate(7,1))
+        ];
     }
 }

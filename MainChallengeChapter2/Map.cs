@@ -1,40 +1,66 @@
 ﻿public class Map
 {
-    public RoomType[,] Rooms { get; private set; }
+    public Room[,] Rooms { get; private set; }
+    public Monster[] Monsters { get; private set; }
     public int Size { get; init; } = 4;
     public bool IsFountainActivated = false;
-
-    public Map() 
+    public Map(MapSize mapSizeUser)
     {
-        GetMapGeneration(MapSize.Small);
-    }
-    public Map(MapSize mapSizeUser) 
-    {
-        IMapGeneration command = GetMapGeneration(mapSizeUser);
+        MapGeneration command = GetMapGeneration(mapSizeUser);
         Rooms = command.GenerateMap();
-        Size = Rooms.Length;
+        Size = Rooms.GetLength(0);
+        FillMap();
+        Monsters = command.GenerateMonsters();
     }
 
-    public IMapGeneration GetMapGeneration(MapSize mapSize) {
-        return mapSize switch {
+    public MapGeneration GetMapGeneration(MapSize mapSize)
+    {
+        return mapSize switch
+        {
             MapSize.Small => new SmallMap(),
             MapSize.Medium => new MediumMap(),
             MapSize.Large => new LargeMap(),
             _ => new SmallMap(),
         };
     }
-    public RoomType? LocateAdjacentDangerRoom(Coordinate coordinates) {
-        for(int row =coordinates.X - 1; row <= coordinates.X + 1;row++) {
-            for(int column = coordinates.Y - 1; column <= coordinates.Y + 1;column++) {
-                if (row < 0 || row > Size - 1 || column < 0 || column > Size - 1) {
-                    continue;
-                }
+    public void FillMap()
+    {
+        for (int row = 0; row < Rooms.GetLength(0); row++)
+        {
+            for (int column = 0; column < Rooms.GetLength(1); column++)
+            {
+                if (Rooms[row, column] == null) Rooms[row, column] = new Room(RoomType.Empty);
+            }
+        }
+    }
+    public void SendAdjacentMessages(Coordinate player)
+    {
+        for (int row = player.Y - 1; row <= player.Y + 1; row++)
+        {
+            for (int column = player.X - 1; column <= player.X + 1; column++)
+            {
+                //LIMITS
+                if (row < 0 || row >= Size - 1 || column < 0 || column >= Size - 1) continue;
 
-                if (Rooms[row,column].Equals(RoomType.Pit)) return RoomType.Pit;
+                Room room = Rooms[row, column];
+                if (room.AdjacentMessage == null || room is InteractiveRoom) continue;
+
+                Console.Write("[NEAR ROOM]: ");
+                ConsoleHelper.DisplayMessage(room.AdjacentMessage, room.Color);
             }
         }
 
-        return null;
+        foreach (Monster monster in Monsters)
+        {
+            monster.DisplayAdjacentMessage(player);
+        }
+    }
+    public void UpdateMonsters(Player player)
+    {
+        foreach (Monster monster in Monsters)
+        {
+            monster.Act(player);
+        }
     }
 }
 
